@@ -25,7 +25,7 @@ app.use(bodyParser.json());
 // configure our app to handle CORS requests
 app.use(function(req, res, next) {
 	res.setHeader('Access-Control-Allow-Origin', '*');
-	res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
 	res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type, \
 	Authorization');
 	next();
@@ -64,9 +64,24 @@ apiRouter.get('/', function(req, res) {
 
 // more routes for our API will happen here
 
+apiRouter.route('/users')
+
+//get all users (GET request)
+	.get(function(req, res) {
+
+		//Use our model method to get users
+		User.find(function(err, users) {
+			if (err) res.send(err);
+
+			//return the user
+			res.json(users);
+		});
+	});
+
+
 // on routes that end in /users
 // ----------------------------------------------------
-apiRouter.route('/users')
+apiRouter.route('/users/:user_id')
 // create a user (accessed at POST http://localhost:8080/api/users)
 	.post(function(req, res) {
 		// create a new instance of the User model
@@ -89,18 +104,59 @@ apiRouter.route('/users')
 		});
 	})
 
-
-	//get all users (GET request)
+	// get the user with that id
+	// (accessed at GET http://localhost:8080/api/users/:user_id)
 	.get(function(req, res) {
-		
-		//Use our model method to get users
-		User.find(function(err, users) {
+
+		console.log(req.params);
+
+		User.findById(req.params.user_id, function(err, user) {
+			if (err) res.send(err);
+			// return that user
+			res.json(user);
+		});
+	})
+
+	
+
+	// update the user with this id
+	// (accessed at PUT http://localhost:8080/api/users/:user_id)
+	.put(function(req, res) {
+		// use our user model to find the user we want
+		User.findById(req.params.user_id, function(err, user) {
+
 			if (err) res.send(err);
 
-			//return the user
-			res.json(users);
+			if (user === null) res.send("User doesn't exist");
+			else {
+
+
+				// update the users info only if its new
+				if (req.body.name) user.name = req.body.name;
+				if (req.body.username) user.username = req.body.username;
+				if (req.body.password) user.password = req.body.password;
+				// save the user
+				user.save(function(err) {
+					if (err) res.send(err);
+					// return a message
+					res.json({ message: 'User updated!' });
+				});
+			}
+
+			
+		});
+	})
+
+	// delete the user with this id
+	// (accessed at DELETE http://localhost:8080/api/users/:user_id)
+	.delete(function(req, res) {
+		User.remove({_id: req.params.user_id}, function(err, user) {
+			if (err) return res.send(err);
+			res.json({ message: 'Successfully deleted' });
 		});
 	});
+
+
 
 
 
