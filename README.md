@@ -1,4 +1,3 @@
 # NodeMongoApp
 First Node App With MongoDB integration
-
-This is the readme file for the project
+  App will use Node.js, Express.js, and Mongoose to interact with a local mongodb database
