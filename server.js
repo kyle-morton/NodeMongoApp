@@ -9,7 +9,12 @@ var bodyParser = require('body-parser'); // get body-parser
 var morgan = require('morgan'); // used to see requests
 var mongoose = require('mongoose'); // for working w/ our database
 var port = process.env.PORT || 8080; // set the port for our app
+var User = require('./models/user');
 
+
+
+//connect to our database (hosted by mongolabs)
+mongoose.connect('kyle:oagland@ds041992.mongolab.com:41992/meanmongo');
 
 // APP CONFIGURATION ---------------------
 // use body parser so we can grab information from POST requests
@@ -40,6 +45,15 @@ app.get('/', function(req, res) {
 
 // get an instance of the express router
 var apiRouter = express.Router();
+
+//middleware to use for all requests(Logging)
+apiRouter.use(function(req, res, next) {
+	console.log("Somebody just came to our app!");
+
+	//Authenticate user here
+
+	next(); //make sure route continues
+});
 
 
 // test route to make sure everything is working
