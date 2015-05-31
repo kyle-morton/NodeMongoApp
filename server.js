@@ -51,13 +51,107 @@ app.get('/', function(req, res) {
 // get an instance of the express router
 var apiRouter = express.Router();
 
+
+//initial authenication route
+apiRouter.post('/Authenticate', function (req, res) {
+
+	// find the user
+	// select the name username and password explicitly
+	User.findOne({
+		username: req.body.username
+	}).select('name username password').exec(function(err, user) {
+
+
+	if (err) throw err;
+
+	// no user with that username was found
+	if (!user) {
+		res.json({
+			success: false,
+			message: 'Authentication failed. User not found.'
+		});
+	} else if (user) {
+		// check if password matches
+		var validPassword = user.comparePassword(req.body.password);
+
+		//Doesn't match password
+		if (!validPassword) {
+			res.json({
+			success: false,
+			message: 'Authentication failed. Wrong password.'
+			});
+		} 
+		//passed authentication
+		else {
+			// if user is found and password is right
+			// create a token
+			var token = jwt.sign({
+				name: user.name,
+				username: user.username
+			}, superSecret, {
+				expiresInMinutes: 1440 // expires in 24 hours
+			});
+
+			// return the information including token as JSON
+			res.json({
+				success: true,
+				message: 'Enjoy your token!',
+				token: token
+			});
+		}
+
+	}
+
+	});
+
+});
+
+
 //middleware to use for all requests(Logging)
 apiRouter.use(function(req, res, next) {
 	console.log("Somebody just came to our app!");
 
 	//Authenticate user here
 
-	next(); //make sure route continues
+	/*
+	* REM: Flexible since allow token passing in POST, HTTP header, or URL params
+	*/
+
+	console.log("req header: " + req.headers['x-access-token']);
+
+	// check header or url parameters or post parameters for token
+	var token = req.body.token || req.query.token 
+			|| req.headers['x-access-token'];
+
+	console.log("TOKEN: " + token);
+
+	// decode token
+	if (token) {
+
+		// verifies secret and checks exp
+		jwt.verify(token, superSecret, function(err, decoded) {
+			if (err) {
+			return res.status(403).send({
+				success: false,
+				message: 'Failed to authenticate token.'
+			});
+			} else {
+				// if everything is good, save to request for use in other routes
+				req.decoded = decoded;
+				next();
+			}
+		});
+	} 
+
+	else {
+	// if there is no token
+	// return an HTTP response of 403 (access forbidden) and an error message
+		return res.status(403).send({
+			success: false,
+			message: 'No token provided.'
+		});
+	}
+
 });
 
 // test route to make sure everything is working
@@ -81,13 +175,9 @@ apiRouter.route('/users')
 			//return the user
 			res.json(users);
 		});
-	});
+	})
 
-
-// on routes that end in /users
-// ----------------------------------------------------
-apiRouter.route('/users/:user_id')
-// create a user (accessed at POST http://localhost:8080/api/users)
+	// create a user (accessed at POST http://localhost:8080/api/users)
 	.post(function(req, res) {
 		// create a new instance of the User model
 		var user = new User();
@@ -107,7 +197,12 @@ apiRouter.route('/users/:user_id')
 			}
 			res.json({ message: 'User created!' });
 		});
-	})
+	});
+
+
+// on routes that end in /users/:user_id
+// ----------------------------------------------------
+apiRouter.route('/users/:user_id')
 
 	// get the user with that id
 	// (accessed at GET http://localhost:8080/api/users/:user_id)
@@ -161,6 +256,10 @@ apiRouter.route('/users/:user_id')
 		});
 	});
 
+// api endpoint to get user information
+apiRouter.get('/me', function(req, res) {
+	res.send(req.decoded);
+});
 
 
 
