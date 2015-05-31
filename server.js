@@ -11,6 +11,11 @@ var mongoose = require('mongoose'); // for working w/ our database
 var port = process.env.PORT || 8080; // set the port for our app
 var User = require('./models/user');
 
+//Get JSON web token package
+var jwt = require('jsonwebtoken');
+
+//create secret (SALT) to create tokens with 
+var superSecret = 'ilovescotchscotchyscotchscotch';
 
 
 //connect to our database (hosted by mongolabs)
